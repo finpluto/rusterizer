@@ -1,3 +1,8 @@
+use std::{
+    iter::Map,
+    ops::AddAssign,
+};
+
 use glam::{IVec2, Vec2, Vec3};
 
 use crate::geometry::primitives::Pixel;
@@ -13,8 +18,8 @@ pub struct LinePoints<T> {
     rounds: usize,
 }
 
-impl Iterator for LinePoints<Vec2> {
-    type Item = IVec2;
+impl<AddAssignable: AddAssign + Copy> Iterator for LinePoints<AddAssignable> {
+    type Item = AddAssignable;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.rounds == 0 {
@@ -23,47 +28,79 @@ impl Iterator for LinePoints<Vec2> {
         let cursor = self.cursor;
         self.cursor += self.step;
         self.rounds -= 1;
-        Some(IVec2::new(cursor.x.round() as i32, cursor.y.round() as i32))
+        Some(cursor)
     }
 }
 
-impl Interpolate<IVec2> for IVec2 {
-    fn interpolate(&self, rhs: &IVec2, result_size: usize) -> Self::Output {
+impl Interpolate<Vec2> for Vec2 {
+    type Output = LinePoints<Vec2>;
+
+    fn interpolate(&self, rhs: &Vec2, result_size: usize) -> Self::Output {
         LinePoints {
-            cursor: self.as_vec2(),
-            step: (rhs - self).as_vec2() / std::cmp::max(result_size - 1, 1) as f32,
+            cursor: *self,
+            step: (rhs - self) / std::cmp::max(result_size - 1, 1) as f32,
             rounds: result_size,
         }
     }
-
-    type Output = LinePoints<Vec2>;
 }
 
-impl Iterator for LinePoints<Vec3> {
+impl Interpolate<Vec3> for Vec3 {
+    type Output = LinePoints<Vec3>;
+
+    fn interpolate(&self, rhs: &Vec3, result_size: usize) -> Self::Output {
+        LinePoints {
+            cursor: *self,
+            step: (rhs - self) / std::cmp::max(result_size - 1, 1) as f32,
+            rounds: result_size,
+        }
+    }
+}
+
+type InterIVec2 = Map<LinePoints<Vec2>, fn(Vec2) -> IVec2>;
+
+impl Interpolate<IVec2> for IVec2 {
+    type Output = InterIVec2;
+
+    fn interpolate(&self, rhs: &IVec2, result_size: usize) -> Self::Output {
+        self.as_vec2()
+            .interpolate(&rhs.as_vec2(), result_size)
+            .map(cast_vec2_to_ivec2)
+    }
+}
+
+fn cast_vec2_to_ivec2(v: Vec2) -> IVec2 {
+    IVec2::new(v.x.round() as i32, v.y.round() as i32)
+}
+
+pub struct InterPixels {
+    pos_and_z_iter: LinePoints<Vec3>,
+    illu_iter: LinePoints<Vec3>,
+}
+
+impl Iterator for InterPixels {
     type Item = Pixel;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.rounds == 0 {
-            return None;
+        match (self.pos_and_z_iter.next(), self.illu_iter.next()) {
+            (Some(pos_and_z), Some(illumination)) => Some(Pixel::new(
+                IVec2::new(pos_and_z.x.round() as i32, pos_and_z.y.round() as i32),
+                pos_and_z.z,
+                illumination,
+            )),
+            _ => None,
         }
-        let cursor = self.cursor;
-        self.cursor += self.step;
-        self.rounds -= 1;
-        Some(Pixel {
-            point: IVec2::new(cursor.x.round() as i32, cursor.y.round() as i32),
-            z_recip: cursor.z,
-        })
     }
 }
 
 impl Interpolate<Pixel> for Pixel {
-    type Output = LinePoints<Vec3>;
+    type Output = InterPixels;
 
     fn interpolate(&self, rhs: &Pixel, result_size: usize) -> Self::Output {
-        LinePoints {
-            cursor: self.as_vec3(),
-            step: (rhs.as_vec3() - self.as_vec3()) / std::cmp::max(result_size - 1, 1) as f32,
-            rounds: result_size,
+        InterPixels {
+            pos_and_z_iter: self.xyz_as_vec3().interpolate(&rhs.xyz_as_vec3(), result_size),
+            illu_iter: self
+                .illumination
+                .interpolate(&rhs.illumination, result_size),
         }
     }
 }

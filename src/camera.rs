@@ -1,13 +1,13 @@
-use glam::{Mat3, Vec2, Vec3};
+use glam::{Mat3, Vec3};
 
-use crate::geometry::primitives::Pixel;
+use crate::shaders::VertexShaderImpl;
 
 pub struct Camera {
     pub width: u32,
     pub height: u32,
-    focal: u32,
-    position: Vec3,
-    rotation: Mat3,
+    pub focal: u32,
+    pub position: Vec3,
+    pub rotation: Mat3,
 }
 
 impl Camera {
@@ -21,22 +21,11 @@ impl Camera {
         }
     }
 
-    pub fn vertex_shader(&self, v: &Vec3) -> Pixel {
-        let v = self.rotation * (v - self.position);
-
-        let focal = self.focal as f32;
-        let width = self.width as f32;
-        let height = self.height as f32;
-
-        let projected_point =
-            (focal / v.z) * Vec2::new(v.x, v.y) + Vec2::new(width / 2f32, height / 2f32);
-        Pixel::new(
-            projected_point.as_ivec2(),
-            (self.position.z - v.z).abs().recip(),
-        )
-    }
-
     pub fn set_yaw(&mut self, yaw: f32) {
         self.rotation = Mat3::from_rotation_y(yaw);
+    }
+
+    pub fn as_vertex_shader(&self) -> VertexShaderImpl {
+        VertexShaderImpl::wrap_camera(self)
     }
 }

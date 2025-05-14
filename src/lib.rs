@@ -9,6 +9,7 @@ mod operations;
 mod painter;
 pub mod pixels;
 pub mod scene;
+pub mod shaders;
 pub mod world;
 
 // Global Lock
@@ -77,7 +78,7 @@ pub unsafe extern "C" fn rusterizer_draw_to_pixel_buf(buf: *mut u8) -> bool {
         let (height, width) = world.get_canvas_size();
         let buf_len = (height * width) as usize * 4;
         let buf = unsafe { from_raw_parts_mut(buf, buf_len) };
-        let pixel_buf = PixelBuffer::new(height, width, buf);
+        let pixel_buf = PixelBuffer::new(height, buf);
         world.draw(pixel_buf);
     })
 }

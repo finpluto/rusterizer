@@ -4,6 +4,7 @@ use crate::{
     painter::PolygonFiller,
     pixels::PixelBuffer,
     scene::cornell::{ROOM, SHORT_BLOCK, TALL_BLOCK, scale_triangle},
+    shaders::PixelShaderImpl,
 };
 
 pub struct World {
@@ -27,12 +28,14 @@ impl World {
 
     pub fn draw(&self, mut writer: PixelBuffer) {
         writer.memset(0);
+        let mut ps =
+            PixelShaderImpl::from_point_painter(&mut writer, self.camera.height, self.camera.width);
         for triangle2d in self
             .triangles
             .iter()
             .map(|t| t.project_to_canvas(&self.camera))
         {
-            writer.fill_polygon(triangle2d);
+            ps.fill_polygon(triangle2d);
         }
     }
 
