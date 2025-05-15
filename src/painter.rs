@@ -113,6 +113,9 @@ impl<PS: PixelShader> PolygonFiller for PS {
         for p in edge_pixel_iter {
             let i = p.point.y - y_min;
             let i = i as usize;
+            if i >= left_pixels.len() {
+                continue;
+            }
             if left_pixels[i].point.x > p.point.x {
                 left_pixels[i] = p;
             }
