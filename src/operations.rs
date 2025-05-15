@@ -1,7 +1,4 @@
-use std::{
-    iter::Map,
-    ops::AddAssign,
-};
+use std::{iter::Map, ops::AddAssign};
 
 use glam::{IVec2, Vec2, Vec3};
 
@@ -74,18 +71,18 @@ fn cast_vec2_to_ivec2(v: Vec2) -> IVec2 {
 
 pub struct InterPixels {
     pos_and_z_iter: LinePoints<Vec3>,
-    illu_iter: LinePoints<Vec3>,
+    pos3d_over_z_iter: LinePoints<Vec3>,
 }
 
 impl Iterator for InterPixels {
     type Item = Pixel;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.pos_and_z_iter.next(), self.illu_iter.next()) {
-            (Some(pos_and_z), Some(illumination)) => Some(Pixel::new(
+        match (self.pos_and_z_iter.next(), self.pos3d_over_z_iter.next()) {
+            (Some(pos_and_z), Some(pos3d_over_z)) => Some(Pixel::new(
                 IVec2::new(pos_and_z.x.round() as i32, pos_and_z.y.round() as i32),
                 pos_and_z.z,
-                illumination,
+                pos3d_over_z / pos_and_z.z,
             )),
             _ => None,
         }
@@ -97,10 +94,11 @@ impl Interpolate<Pixel> for Pixel {
 
     fn interpolate(&self, rhs: &Pixel, result_size: usize) -> Self::Output {
         InterPixels {
-            pos_and_z_iter: self.xyz_as_vec3().interpolate(&rhs.xyz_as_vec3(), result_size),
-            illu_iter: self
-                .illumination
-                .interpolate(&rhs.illumination, result_size),
+            pos_and_z_iter: self
+                .xyz_as_vec3()
+                .interpolate(&rhs.xyz_as_vec3(), result_size),
+            pos3d_over_z_iter: (self.position_3d * self.z_recip)
+                .interpolate(&(rhs.position_3d * rhs.z_recip), result_size),
         }
     }
 }

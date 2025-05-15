@@ -1,7 +1,7 @@
 use glam::{IVec2, Vec3};
 
 use crate::{
-    geometry::primitives::{Pixel, Vertices},
+    geometry::primitives::{NormalProvider, Pixel, ReflectanceProvider, Vertices},
     operations::Interpolate,
     pixels::PixelBuffer,
     shaders::PixelShader,
@@ -68,11 +68,17 @@ impl<LP: LinePainter> PolygonPainter for LP {
 }
 
 pub trait PolygonFiller {
-    fn fill_polygon(&mut self, polygon: impl Vertices<Vertex = Pixel>);
+    fn fill_polygon(
+        &mut self,
+        polygon: impl Vertices<Vertex = Pixel> + NormalProvider + ReflectanceProvider,
+    );
 }
 
 impl<PS: PixelShader> PolygonFiller for PS {
-    fn fill_polygon(&mut self, polygon: impl Vertices<Vertex = Pixel>) {
+    fn fill_polygon(
+        &mut self,
+        polygon: impl Vertices<Vertex = Pixel> + NormalProvider + ReflectanceProvider,
+    ) {
         let polygon_vertices = polygon.vertices();
         let y_max = polygon_vertices
             .as_ref()
@@ -121,7 +127,7 @@ impl<PS: PixelShader> PolygonFiller for PS {
                 if pixel.point.x < 0 || pixel.point.y < 0 {
                     continue;
                 }
-                self.pixel_shader(pixel);
+                self.pixel_shader(pixel, polygon.get_normal(), polygon.get_reflectance());
             }
         }
     }

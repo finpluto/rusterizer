@@ -1,3 +1,5 @@
+use glam::Vec3;
+
 use crate::{
     camera::Camera,
     geometry::primitives::Triangle,
@@ -10,6 +12,7 @@ use crate::{
 pub struct World {
     camera: Camera,
     triangles: Vec<Triangle>,
+    light_offset: Vec3,
 }
 
 impl World {
@@ -23,13 +26,18 @@ impl World {
         Self {
             camera: Camera::new(height, width),
             triangles,
+            light_offset: Vec3::ZERO,
         }
     }
 
     pub fn draw(&self, mut writer: PixelBuffer) {
         writer.memset(0);
-        let mut ps =
-            PixelShaderImpl::from_point_painter(&mut writer, self.camera.height, self.camera.width);
+        let mut ps = PixelShaderImpl::from_point_painter(
+            &mut writer,
+            self.camera.height,
+            self.camera.width,
+            self.light_offset,
+        );
         for triangle2d in self
             .triangles
             .iter()
@@ -45,5 +53,9 @@ impl World {
 
     pub fn get_canvas_size(&self) -> (u32, u32) {
         (self.camera.height, self.camera.width)
+    }
+
+    pub fn update_light_offset(&mut self, x: f32, y: f32, z: f32) {
+        self.light_offset = Vec3::new(x, y, z);
     }
 }

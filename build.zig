@@ -41,11 +41,11 @@ pub fn build(b: *std.Build) void {
             });
         },
         .windows => {
-            _ = b.addModule("librusterizer.dll", .{
-                .root_source_file = as_artifacts.path(b, "librusterizer.dll"),
+            _ = b.addModule("rusterizer.dll", .{
+                .root_source_file = as_artifacts.path(b, "rusterizer.dll"),
             });
-            _ = b.addModule("librusterizer.lib", .{
-                .root_source_file = as_artifacts.path(b, "librusterizer.lib"),
+            _ = b.addModule("rusterizer.dll.lib", .{
+                .root_source_file = as_artifacts.path(b, "rusterizer.dll.lib"),
             });
         },
         else => {},

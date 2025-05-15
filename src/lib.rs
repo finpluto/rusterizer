@@ -93,8 +93,7 @@ pub extern "C" fn rusterizer_camera_yaw(yaw: f32) {
 //    with_world_mut(|world| world.camera.set_z_translate(amount));
 //}
 //
-//#[unsafe(no_mangle)]
-//pub extern "C" fn as_light_position_offset(x: f32, y: f32, z: f32) {
-//    with_world_mut(|world| world.light.update_offset(x, y, z));
-//}
-//
+#[unsafe(no_mangle)]
+pub extern "C" fn rusterizer_light_position_offset(x: f32, y: f32, z: f32) {
+    with_world_mut(|world| world.update_light_offset(x, y, z));
+}

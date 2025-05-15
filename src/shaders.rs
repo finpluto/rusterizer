@@ -13,7 +13,7 @@ pub trait VertexShader {
 }
 
 pub trait PixelShader {
-    fn pixel_shader(&mut self, p: Pixel);
+    fn pixel_shader(&mut self, p: Pixel, normal: Vec3, reflectance: Vec3);
 }
 
 const LIGHT_POS: Vec3 = Vec3::new(0f32, -0.5, -0.7);
@@ -25,15 +25,22 @@ pub struct PixelShaderImpl<'pp, PP> {
     height: u32,
     point_painter: &'pp mut PP,
     z_buf: Vec<f32>,
+    light_pos: Vec3,
 }
 
 impl<'pp, PP: PointPainter> PixelShaderImpl<'pp, PP> {
-    pub fn from_point_painter(pp: &'pp mut PP, height: u32, width: u32) -> Self {
+    pub fn from_point_painter(
+        pp: &'pp mut PP,
+        height: u32,
+        width: u32,
+        light_offset: Vec3,
+    ) -> Self {
         Self {
             width,
             height,
             point_painter: pp,
             z_buf: vec![0f32; (height * width) as usize],
+            light_pos: light_offset + LIGHT_POS,
         }
     }
 
@@ -43,20 +50,28 @@ impl<'pp, PP: PointPainter> PixelShaderImpl<'pp, PP> {
 }
 
 impl<PP: PointPainter> PixelShader for PixelShaderImpl<'_, PP> {
-    fn pixel_shader(&mut self, pixel: Pixel) {
+    fn pixel_shader(&mut self, pixel: Pixel, normal: Vec3, reflectance: Vec3) {
         let z_idx = self.get_z_value_idx(pixel.point);
 
         // FIXME: weird out of bound issue
         if z_idx >= (self.width * self.height) as usize {
             return;
         }
+
+        // illumination calculation
+        let r = self.light_pos - pixel.position_3d;
+        let n = normal;
+        let d = (r.normalize().dot(n)).max(0f32) / (4f32 * PI * r.dot(r)) * LIGHT_POWER;
+
+        let illumination = reflectance * (d + INDIRECT_LIGHT_POWER_PER_AREA);
+
         let z_recip = self.z_buf[z_idx];
         if pixel.z_recip > z_recip {
             self.z_buf[z_idx] = pixel.z_recip;
             self.point_painter.draw_point(
                 pixel.point.x as u32,
                 pixel.point.y as u32,
-                &pixel.illumination,
+                &illumination,
             );
         }
     }
@@ -84,16 +99,16 @@ impl VertexShader for VertexShaderImpl<'_> {
             (focal / v.z) * Vec2::new(v.x, v.y) + Vec2::new(width / 2f32, height / 2f32);
 
         // illumination calculation
-        let r = LIGHT_POS - vertex.point;
-        let n = vertex.normal;
-        let d = (r.normalize().dot(n)).max(0f32) / (4f32 * PI * r.dot(r)) * LIGHT_POWER;
+        //let r = LIGHT_POS - vertex.point;
+        //let n = vertex.normal;
+        //let d = (r.normalize().dot(n)).max(0f32) / (4f32 * PI * r.dot(r)) * LIGHT_POWER;
 
-        let illumination = vertex.reflectance * (d + INDIRECT_LIGHT_POWER_PER_AREA);
+        //let illumination = vertex.reflectance * (d + INDIRECT_LIGHT_POWER_PER_AREA);
 
         Pixel::new(
             projected_point.as_ivec2(),
             (self.camera.position.z - v.z).abs().recip(),
-            illumination,
+            vertex.point,
         )
     }
 }

@@ -33,13 +33,15 @@ impl Triangle {
 
     pub fn project_to_canvas(&self, camera: &Camera) -> Triangle2D {
         let vs = camera.as_vertex_shader();
-        let v0 = Vertex::new(self.v0, self.get_normal(), self.color);
-        let v1 = Vertex::new(self.v1, self.get_normal(), self.color);
-        let v2 = Vertex::new(self.v2, self.get_normal(), self.color);
+        let v0 = Vertex::new(self.v0);
+        let v1 = Vertex::new(self.v1);
+        let v2 = Vertex::new(self.v2);
         Triangle2D {
             v0: vs.vertex_shader(&v0),
             v1: vs.vertex_shader(&v1),
             v2: vs.vertex_shader(&v2),
+            reflectance: self.color,
+            normal: self.get_normal(),
         }
     }
 }
@@ -48,6 +50,28 @@ pub struct Triangle2D {
     pub v0: Pixel,
     pub v1: Pixel,
     pub v2: Pixel,
+    pub reflectance: Vec3,
+    pub normal: Vec3,
+}
+
+pub trait NormalProvider {
+    fn get_normal(&self) -> Vec3;
+}
+
+pub trait ReflectanceProvider {
+    fn get_reflectance(&self) -> Vec3;
+}
+
+impl NormalProvider for Triangle2D {
+    fn get_normal(&self) -> Vec3 {
+        self.normal
+    }
+}
+
+impl ReflectanceProvider for Triangle2D {
+    fn get_reflectance(&self) -> Vec3 {
+        self.reflectance
+    }
 }
 
 pub trait Vertices {
@@ -75,15 +99,15 @@ impl Vertices for Triangle2D {
 pub struct Pixel {
     pub point: IVec2,
     pub z_recip: f32,
-    pub illumination: Vec3,
+    pub position_3d: Vec3,
 }
 
 impl Pixel {
-    pub fn new(point: IVec2, z_recip: f32, illumination: Vec3) -> Self {
+    pub fn new(point: IVec2, z_recip: f32, position_3d: Vec3) -> Self {
         Self {
             point,
             z_recip,
-            illumination,
+            position_3d,
         }
     }
 
@@ -95,16 +119,10 @@ impl Pixel {
 
 pub struct Vertex {
     pub point: Vec3,
-    pub normal: Vec3,
-    pub reflectance: Vec3,
 }
 
 impl Vertex {
-    pub fn new(point: Vec3, normal: Vec3, reflectance: Vec3) -> Self {
-        Self {
-            point,
-            normal,
-            reflectance,
-        }
+    pub fn new(point: Vec3) -> Self {
+        Self { point }
     }
 }
