@@ -25,6 +25,10 @@ impl Camera {
         self.rotation = Mat3::from_rotation_y(yaw);
     }
 
+    pub fn set_z_translate(&mut self, amount: f32) {
+        self.position.z += amount;
+    }
+
     pub fn as_vertex_shader(&self) -> VertexShaderImpl {
         VertexShaderImpl::wrap_camera(self)
     }

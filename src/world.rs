@@ -3,9 +3,9 @@ use glam::Vec3;
 use crate::{
     camera::Camera,
     geometry::primitives::Triangle,
-    painter::PolygonFiller,
+    painter::{PointPainter, PolygonFiller},
     pixels::PixelBuffer,
-    scene::cornell::{ROOM, SHORT_BLOCK, TALL_BLOCK, scale_triangle},
+    scene::cornell::{scale_triangle, ROOM, SHORT_BLOCK, TALL_BLOCK},
     shaders::PixelShaderImpl,
 };
 
@@ -45,6 +45,10 @@ impl World {
         {
             ps.fill_polygon(triangle2d);
         }
+    }
+
+    pub fn set_z_translate(&mut self, offset: f32) {
+        self.camera.set_z_translate(offset);
     }
 
     pub fn set_yaw(&mut self, yaw: f32) {
